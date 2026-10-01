@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS users(id SERIAL PRIMARY KEY,email TEXT UNIQUE NOT NULL,password_hash TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'user',balance NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK(balance>=0),active BOOLEAN NOT NULL DEFAULT true,created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+INSERT INTO settings VALUES('default_payout','82') ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS trades(id SERIAL PRIMARY KEY,user_id INT REFERENCES users,symbol TEXT NOT NULL,direction TEXT CHECK(direction IN('call','put')),amount NUMERIC(14,2) NOT NULL CHECK(amount>0),payout_pct NUMERIC(5,2) NOT NULL,open_price NUMERIC(20,8) NOT NULL,close_price NUMERIC(20,8),opened_at TIMESTAMPTZ DEFAULT now(),expires_at TIMESTAMPTZ NOT NULL,status TEXT NOT NULL DEFAULT 'open',result TEXT,payout NUMERIC(14,2));
+CREATE INDEX IF NOT EXISTS trades_open_idx ON trades(status,expires_at);
+CREATE TABLE IF NOT EXISTS ledger(id BIGSERIAL PRIMARY KEY,user_id INT REFERENCES users,type TEXT NOT NULL,amount NUMERIC(14,2) NOT NULL,balance_after NUMERIC(14,2) NOT NULL,ref TEXT,note TEXT,actor_id INT,created_at TIMESTAMPTZ DEFAULT now());
+CREATE TABLE IF NOT EXISTS requests(id SERIAL PRIMARY KEY,user_id INT REFERENCES users,kind TEXT CHECK(kind IN('deposit','withdrawal')),method TEXT NOT NULL,amount NUMERIC(14,2) NOT NULL CHECK(amount>0),txid TEXT,account TEXT,status TEXT NOT NULL DEFAULT 'pending',external_id TEXT UNIQUE,created_at TIMESTAMPTZ DEFAULT now(),reviewed_by INT,reviewed_at TIMESTAMPTZ);
